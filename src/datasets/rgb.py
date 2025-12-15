@@ -1,3 +1,9 @@
+import random
+from datasets import Dataset
+from PIL import Image
+import torch
+from torchvision import transforms
+
 def sample_clip(num_frames_total, clip_len=16, min_stride=2, max_stride=6):
     """연속된 클립 샘플링 (stride 랜덤)"""
     if num_frames_total < clip_len:  # 프레임 부족 시

@@ -1,3 +1,9 @@
+import random
+import math
+import numpy as np
+from datasets import Dataset
+import torch
+
 # ==========================================
 # 2. 공간 증강 함수 (Spatial Augmentation)
 # ==========================================

@@ -4,8 +4,12 @@ num_frames = int(df["frames"].iloc[0])
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = STGCN_Model(num_classes=5).to(device)
-optimizer = optim.AdamW(model.blocks[-1].proj.parameters(), lr=1e-4)
-scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100, eta_min=1e-5)
+optimizer = optim.AdamW(model.parameters(), lr=1e-3)
+scheduler = get_cosine_schedule_with_warmup(
+    optimizer,
+    num_warmup_steps=int(total_steps * 0.1), # WARMUP_RATIO), 원래 linear 일때 썻던 값은데 0.1이었거든? 0.05로 줄이래
+    num_training_steps=total_steps,
+)
 criterion = nn.CrossEntropyLoss()
 
 for epoch in tqdm(range(EPOCHS)):
@@ -24,6 +28,7 @@ for epoch in tqdm(range(EPOCHS)):
         loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
+        scheduler.step()
 
         train_loss += loss.item()
         _, predicted = outputs.max(1)
@@ -56,3 +61,5 @@ for epoch in tqdm(range(EPOCHS)):
 
     val_acc = 100. * val_correct / val_total
     val_loss /= len(val_loader)
+    print(f"Epoch {epoch+1} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | "
+        f"Train Acc: {train_acc:.2f}% | Val Acc: {val_acc:.2f}%")

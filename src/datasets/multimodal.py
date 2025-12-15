@@ -1,3 +1,6 @@
+import random
+from datasets import Dataset
+
 def sample_clip(num_frames_total, clip_len=30, min_stride=2, max_stride=6):
     if num_frames_total < clip_len:
         return list(range(num_frames_total)) + \

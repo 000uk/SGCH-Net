@@ -1,3 +1,8 @@
+import random
+import numpy as np
+from datasets import Dataset
+import torch
+
 def augment_skeleton(x):
     # Gaussian Noise only (RGB와 독립)
     if random.random() < 0.5:
