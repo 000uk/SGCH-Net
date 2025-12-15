@@ -18,7 +18,7 @@ class SGCMFATrainer:
         total = 0
         correct = 0
 
-        for inputs, targets in enumerate(tqdm(self.train_loader, desc = f"Epoch: {epoch+1}")):
+        for inputs, targets in tqdm(self.train_loader, desc = f"Epoch: {epoch+1}"):
             inputs = inputs.to(self.device)
             targets = targets.to(self.device)
             

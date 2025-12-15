@@ -33,10 +33,10 @@ class MultiModalDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.rgb:
-            frames, label = self.rgb.get_raw(idx)
+            frames, label = self.rgb[idx]
             T = len(frames)
         else:
-            skel, label = self.skel.get_raw(idx)
+            skel, label = self.skel[idx]
             T = skel.shape[0]
 
         indices = sample_clip(

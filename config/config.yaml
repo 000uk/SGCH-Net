@@ -2,8 +2,8 @@ exp_name: stgcn_baseline
 seed: 42
 
 data:
-  csv_path: data/jester/meta.csv
-  data_dir: data/jester
+  csv_path: data/meta.csv
+  data_dir: data
 
 model:
   in_channels: 3

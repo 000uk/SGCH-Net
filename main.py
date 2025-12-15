@@ -4,6 +4,7 @@ import yaml
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
+import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 from transformers import get_cosine_schedule_with_warmup
@@ -33,22 +34,20 @@ def main(args):
 
     df = pd.read_csv(config['data']['csv_path'])
     num_classes = len(df['label'].unique())
-    num_frames = int(df["frames"].iloc[0])
+    # num_frames = int(df["frames"].iloc[0])
 
     print("🤖 Initializing Model...")
     model = STGCN_Model(
         num_classes=num_classes,
-        num_frames=num_frames,
-        **config['model']
     ).to(device)
 
     print("📚 Loading Data...")
     train_loader, valid_loader = get_loader(
-        config['data'],
+        config['data']['data_dir'],
         batch_size=config['train']['batch_size']
     )
 
-    print("📚 Loading Trainer...")
+    print("🖥️ Loading Trainer...")
     optimizer = optim.AdamW(
         model.parameters(),
         lr=float(config['train']['lr']),
@@ -68,7 +67,6 @@ def main(args):
         optimizer=optimizer,
         scheduler=scheduler,
         device=device,
-        config=config
     )
 
     best_f1 = 0.0

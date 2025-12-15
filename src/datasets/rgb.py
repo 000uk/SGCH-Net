@@ -1,5 +1,6 @@
 import random
 from torch.utils.data import Dataset
+import os
 from PIL import Image
 import torch
 from torchvision import transforms
@@ -52,34 +53,38 @@ class VideoDataset(Dataset):
                 )
             ])
 
-
     def __len__(self):
         return len(self.video_paths)
 
-    def __getitem__(self, idx):
-        video_dir = self.video_paths[idx] # 폴더 경로
+    # 프레임 경로 가져오기
+    def _get_frame_paths(self, idx):
+        video_dir = self.video_paths[idx]
+        frames = sorted([
+            os.path.join(video_dir, f)
+            for f in os.listdir(video_dir)
+            if f.endswith('.jpg')
+        ])
+        return frames
+
+    # 원랜 __getitem__에 있던건데 ske이랑 시간축 맞출려고 뺌
+    def get_clip(self, idx, indices):
+        frame_paths = self._get_frame_paths(idx)
         label = self.labels[idx]
 
-        # 폴더 안의 jpg 목록 가져오기
-        frames = sorted([os.path.join(video_dir, f) for f in os.listdir(video_dir) if f.endswith('.jpg')])
-        
-        # 연속된 클립 샘플링
-        indices = sample_clip(len(frames), clip_len=self.num_frames)
-        
-        selected_frames = [frames[i] for i in indices]
-
-        # 3. 이미지 로드 및 전처리
         images = []
-        for p in selected_frames:
+        for i in indices:
+            i = min(i, len(frame_paths) - 1)
             try:
-                img = Image.open(p).convert('RGB')
-                img = self.transform(img) # 전처리 적용
+                img = Image.open(frame_paths[i]).convert("RGB")
+                img = self.transform(img)
                 images.append(img)
-            except Exception as e:
-                print(f"Error loading image {p}: {e}")
-                # 에러나면 검은 화면 추가 (Shape 유지)
+            except Exception:
                 images.append(torch.zeros(3, 224, 224))
 
-        # (T, C, H, W) → (C, T, H, W)
         video_tensor = torch.stack(images).permute(1, 0, 2, 3)
         return video_tensor, label
+
+    def __getitem__(self, idx):
+        frames = self._get_frame_paths(idx)
+        indices = sample_clip(len(frames), clip_len=self.num_frames)
+        return self.get_clip(idx, indices)
