@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from .layers.graph_layer.py import GraphConv, Graph
-from .layers.attn_layer.py import CoordAtt, TemporalAttention
+from .layers.graph_layer import GraphConv, Graph
+from .layers.attn_layer import CoordAtt, TemporalAttention
 
 # Spatial(공간) → Temporal(시간) → Attention(중요도 필터링) → Residual(정보 보존)
 """
