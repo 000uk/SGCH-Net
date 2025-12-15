@@ -1,9 +1,6 @@
 from tqdm import tqdm
 import torch
-import torch.nn.functional as F
-import math
-from .loss import SupervisedContrastiveLoss
-from .utils import calculate_mrr
+from sklearn.metrics import f1_score, confusion_matrix
 
 class SGCMFATrainer:
     def __init__(self, model, train_loader, criterion, optimizer, scheduler, device):
@@ -48,6 +45,7 @@ class SGCMFATrainer:
         val_loss = 0
         val_correct = 0
         val_total = 0
+        all_preds, all_labels = [], []
 
         with torch.no_grad():
             for inputs, targets in valid_loader:
@@ -62,7 +60,14 @@ class SGCMFATrainer:
                 val_total += targets.size(0)
                 val_correct += predicted.eq(targets).sum().item()
 
+                preds = torch.argmax(outputs, dim=1)
+                all_preds.extend(preds.cpu().numpy())
+                all_labels.extend(targets.cpu().numpy())
+
         val_acc = 100. * val_correct / val_total
         val_loss /= len(valid_loader)
 
-        return val_acc, val_loss
+        f1_macro = f1_score(all_labels, all_preds, average="macro")
+        cm = confusion_matrix(all_labels, all_preds)
+
+        return val_acc, val_loss, f1_macro, cm
