@@ -1,36 +1,22 @@
-import random
+from ..utils import sample_clip
 from torch.utils.data import Dataset
 import os
 from PIL import Image
 import torch
 from torchvision import transforms
 
-def sample_clip(num_frames_total, clip_len=16, min_stride=2, max_stride=6):
-    """연속된 클립 샘플링 (stride 랜덤)"""
-    if num_frames_total < clip_len:  # 프레임 부족 시
-        return list(range(num_frames_total)) + [num_frames_total - 1] * (clip_len - num_frames_total)
-
-    stride = random.randint(min_stride, max_stride)
-    max_start = max(0, num_frames_total - clip_len * stride)
-
-    start = random.randint(0, max_start) if max_start > 0 else 0
-    idxs = [start + i * stride for i in range(clip_len)]
-
-    # --- 수정 포인트: 범위 넘으면 마지막 프레임으로 대체 ---
-    idxs = [min(i, num_frames_total - 1) for i in idxs]
-
-    return idxs
-
 class VideoDataset(Dataset):
     def __init__(self, video_paths, labels,
-                 num_frames=30, min_stride=2, max_stride=6, train=True):
+                 clip_len=30, min_stride=2, max_stride=6, train=True):
         """
         data_list: [.npy 파일 경로 리스트] or [Numpy 배열 리스트]
         labels: [0, 1, 0, 2, ...] 정답 라벨 리스트
         """
         self.video_paths = video_paths
         self.labels = labels
-        self.num_frames = num_frames
+        self.clip_len = clip_len
+        self.min_stride = min_stride
+        self.max_stride = max_stride
         self.train = train
 
         if train:
@@ -81,10 +67,16 @@ class VideoDataset(Dataset):
             except Exception:
                 images.append(torch.zeros(3, 224, 224))
 
+        # (T, C, H, W) -> (C, T, H, W)
         video_tensor = torch.stack(images).permute(1, 0, 2, 3)
         return video_tensor, label
 
     def __getitem__(self, idx):
         frames = self._get_frame_paths(idx)
-        indices = sample_clip(len(frames), clip_len=self.num_frames)
+        indices = sample_clip(
+            len(frames),
+            clip_len=self.clip_len,
+            min_stride=self.min_stride,
+            max_stride=self.max_stride
+        )
         return self.get_clip(idx, indices)

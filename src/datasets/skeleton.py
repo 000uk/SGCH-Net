@@ -10,10 +10,11 @@ def augment_skeleton(x):
         x = x + noise
     return x
 
-class SkeletonDataset(torch.utils.data.Dataset):
-    def __init__(self, data_paths, labels, train=True):
+class SkeletonDataset(Dataset):
+    def __init__(self, data_paths, labels, clip_len=30, train=True):
         self.data = data_paths
         self.labels = labels
+        self.clip_len = clip_len
         self.train = train
 
     def __len__(self):
@@ -50,7 +51,8 @@ class SkeletonDataset(torch.utils.data.Dataset):
         return self.get_clip(idx, indices)
 
     # 내부에서 랜덤 clip 샘플링
-    def _sample_indices(self, num_frames, clip_len=30):
+    def _sample_indices(self, num_frames):
+        clip_len = self.clip_len
         if num_frames < clip_len:
             return list(range(num_frames)) + [num_frames - 1] * (clip_len - num_frames)
         start = random.randint(0, num_frames - clip_len)

@@ -26,19 +26,57 @@ def get_loader(BASE_PATH, batch_size=8, num_workers=4,
         test_size=0.2, stratify=labels, random_state=42
     )
 
-    rgb_tr = VideoDataset(vid_tr, y_tr, train=True) if use_rgb else None
-    rgb_val = VideoDataset(vid_val, y_val, train=False) if use_rgb else None
+    CLIP_LEN = 30
 
-    skel_tr = SkeletonDataset(npy_tr, y_tr, train=True) if use_skel else None
-    skel_val = SkeletonDataset(npy_val, y_val, train=False) if use_skel else None
+    rgb_tr = VideoDataset(
+        vid_tr, y_tr,
+        clip_len=CLIP_LEN,
+        train=True
+    ) if use_rgb else None
 
-    train_ds = MultiModalDataset(rgb_tr, skel_tr)
-    val_ds   = MultiModalDataset(rgb_val, skel_val)
+    rgb_val = VideoDataset(
+        vid_val, y_val,
+        clip_len=CLIP_LEN,
+        train=False
+    ) if use_rgb else None
 
-    train_loader = DataLoader(train_ds, batch_size=batch_size,
-                              shuffle=True, num_workers=num_workers)
 
-    val_loader = DataLoader(val_ds, batch_size=batch_size,
-                            shuffle=False, num_workers=num_workers)
+    skel_tr = SkeletonDataset(
+        npy_tr, y_tr,
+        clip_len=CLIP_LEN,
+        train=True
+    ) if use_skel else None
+
+    skel_val = SkeletonDataset(
+        npy_val, y_val,
+        clip_len=CLIP_LEN,
+        train=False
+    ) if use_skel else None
+
+
+    train_ds = MultiModalDataset(
+        rgb_dataset=rgb_tr,
+        skel_dataset=skel_tr,
+        clip_len=CLIP_LEN
+    )
+
+    val_ds = MultiModalDataset(
+        rgb_dataset=rgb_val,
+        skel_dataset=skel_val,
+        clip_len=CLIP_LEN
+    )
+
+    train_loader = DataLoader(
+        train_ds,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers
+    )
+    val_loader = DataLoader(
+        val_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers
+    )
 
     return train_loader, val_loader
