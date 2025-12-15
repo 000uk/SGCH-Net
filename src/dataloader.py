@@ -1,5 +1,5 @@
 import pandas as pd
-from datasets import DataLoader
+from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 
 from .datasets.rgb import VideoDataset

@@ -11,7 +11,7 @@ from transformers import get_cosine_schedule_with_warmup
 # 사용자 정의 모듈 임포트 (경로에 맞게 수정)
 from src.utils import set_seed
 from src.models.stgcn import STGCN_Model
-from src import get_dataloader
+from src.dataloader import get_loader
 from src.trainer import SGCMFATrainer
 
 def load_config(config_path):
@@ -43,7 +43,7 @@ def main(args):
     ).to(device)
 
     print("📚 Loading Data...")
-    train_loader, valid_loader = get_dataloader(
+    train_loader, valid_loader = get_loader(
         config['data'],
         batch_size=config['train']['batch_size']
     )
