@@ -1,5 +1,6 @@
 ## SGCMFA-Net: Skeleton-Guided Cross-Modal Fusion Network
 <img width="932" height="246" alt="image" src="https://github.com/user-attachments/assets/3ab28105-f550-4c3f-8c3e-8c30b2946228" />
+
 본 프로젝트는 합성 데이터 증강과 Skeleton-Guided Cross-Modal Attention을 결합하여,  
 조명·배경·사용자 변화에 강건한 핸드 제스처 인식 모델을 제안한다.
 
