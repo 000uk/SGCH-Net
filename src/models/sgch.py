@@ -32,7 +32,7 @@ class Skeleton_Encoder(nn.Module): # ★ ST-GCN Part
         for gcn in self.gcn_networks: x = gcn(x)
         return x
 
-class SGCMFA_Net(nn.Module):
+class SGCH_Net(nn.Module):
     def __init__(self, num_classes=5):
         super().__init__()
         self.graph = Graph()
@@ -43,7 +43,7 @@ class SGCMFA_Net(nn.Module):
         self.skel_stream = Skeleton_Encoder(3, 128, A)
         
         # 2. Fusion
-        self.fusion = CMFA_Fusion(channel=128)
+        self.fusion = DualFusionTransformer(d_model=128, num_queries=21, nhead=4, num_layers=2)
         
         # 3. Backend (Deep Features)
         self.backend = nn.Sequential(
@@ -86,7 +86,7 @@ class SGCMFA_Net(nn.Module):
         feat_skel = self.skel_stream(x_skel)
         
         # Fusion (Skeleton Guides RGB)
-        x = self.fusion(feat_skel, feat_rgb)
+        x, attn_map = self.fusion(feat_skel, feat_rgb)
         
         # Backend Processing
         for block in self.backend: x = block(x)
@@ -96,4 +96,4 @@ class SGCMFA_Net(nn.Module):
         
         # Classification
         x = F.avg_pool2d(x, x.size()[2:]).view(N, -1)
-        return self.fc(x)
+        return self.fc(x), attn_map
