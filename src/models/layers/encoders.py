@@ -20,25 +20,13 @@ class RGB_Encoder(nn.Module):
         x = x.view(B, T, C_new, H_new, W_new).permute(0, 2, 1, 3, 4) 
         return x # (B, 128, T, 7, 7)
 
-# class Skeleton_Encoder(nn.Module): # ★ ST-GCN Part
-#     def __init__(self, in_channels, out_channels, A):
-#         super(Skeleton_Encoder, self).__init__()
-#         self.gcn_networks = nn.Sequential(
-#             ST_GCN_Block(in_channels, 64, A),
-#             ST_GCN_Block(64, 64, A),
-#             ST_GCN_Block(64, 128, A) # 128채널로 맞춰줌
-#         )
-#     def forward(self, x):
-#         for gcn in self.gcn_networks: x = gcn(x)
-#         return x
 class Skeleton_Encoder(nn.Module):
     def __init__(self, in_channels, d_model, A):
         super().__init__()
         # A는 (21, 21) 형태의 인접 행렬
         self.joint_encoder = LearnedJointEncoding(d_model)
 
-        # zeros가 아니라 실제 그래프 구조 A로 초기화!
-        # 아주 작은 값(1e-4)이라도 줘서 연결된 곳에 특혜를 주자.
+        # zeros가 아니라 실제 그래프 구조 A로 초기화! 쬐끄만한 넣기 ㄱㄱ
         self.graph_bias = nn.Parameter(A.clone().float()) 
         self.hybrid_attn = GraphAwareAttention(d_model, nhead=4)
 

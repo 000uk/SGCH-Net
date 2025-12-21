@@ -13,7 +13,6 @@ class Graph:
 
     def get_edges(self):
         # MediaPipe Hands 기준 연결 정보
-        # 0:손목, 1-4:엄지, 5-8:검지, ...
         self_link = [(i, i) for i in range(self.num_node)]
         neighbor_link = [
             (0, 1), (1, 2), (2, 3), (3, 4),      # Thumb
@@ -42,14 +41,11 @@ class GraphConv(nn.Module):
         super(GraphConv, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
         self.A = nn.Parameter(A, requires_grad=False)
-        # Adaptive Graph (선택사항: 성능 더 올리고 싶으면 주석 해제)
-        # self.PA = nn.Parameter(torch.zeros_like(A), requires_grad=True)
 
     def forward(self, x):
         x = self.conv(x)
         n, c, t, v = x.size()
         x = x.view(n, c * t, v)
-        # x = torch.matmul(x, self.A + self.PA) # Adaptive 사용 시
         x = torch.matmul(x, self.A) 
         x = x.view(n, c, t, v)
         return x
@@ -58,29 +54,24 @@ class ST_GCN_Block(nn.Module):
     def __init__(self, in_channels, out_channels, A, stride=1):
         super(ST_GCN_Block, self).__init__()
 
-        # Spatial Graph Conv
         self.gcn = GraphConv(in_channels, out_channels, A)
 
-        # Temporal Conv (시간축으로 1D Conv)
-        # kernel_size=(9, 1): 시간축으로 9프레임을 봄
         self.tcn = nn.Sequential(
             nn.BatchNorm2d(out_channels),
             nn.ReLU(),
             nn.Conv2d(
                 out_channels,
                 out_channels,
-                (9, 1), # (Time, Node) -> Node는 섞지 않고 시간만 봄
+                (9, 1), # (Time, Node) Node는 섞지 않고 시간축으로 9프레임을 봄
                 padding=(4, 0),
                 stride=(stride, 1)
             ),
             nn.BatchNorm2d(out_channels),
-            nn.Dropout(0.5, inplace=True) # 과적합 방지
+            nn.Dropout(0.5, inplace=True)
         )
         
-        # Coordinate Attention 적용 (Spatial)
         self.attention = CoordAtt(out_channels) 
 
-        # Residual Connection (ResNet처럼 입력 더하기)
         if in_channels != out_channels or stride != 1:
             self.residual = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=(stride, 1)),
@@ -91,7 +82,7 @@ class ST_GCN_Block(nn.Module):
 
     def forward(self, x):
         res = self.residual(x)
-        x = self.gcn(x) # 공간
-        x = self.tcn(x) # 시간
-        x = self.attention(x) # Attention
+        x = self.gcn(x)
+        x = self.tcn(x)
+        x = self.attention(x)
         return F.relu(x + res)

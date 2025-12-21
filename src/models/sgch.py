@@ -71,7 +71,7 @@ class SGCH_Net(nn.Module):
         self.rgb_stream = RGB_Encoder()
         self.skel_stream = Skeleton_Encoder(3, 128, A)
         self.fusion = DualFusionTransformer(d_model=128, num_queries=21, nhead=4, num_layers=2)
-        self.temporal = TemporalAttention(d_model=128)
+        self.temporal = TemporalAttention(d_model=128) # 관절별 시간 흐름 파악
         self.head = TemporalDecisionHead(
             in_channels=128, 
             hidden_dim=256, 
@@ -83,57 +83,31 @@ class SGCH_Net(nn.Module):
         # x_skel: (B, T, V, C)
         
         B, T, V, C = x_skel.size()
-        device = x_skel.device
 
-        # ============================================================
-        # 1. Pre-processing (Normalization)
-        # ============================================================
         # # 손목 원점 이동 및 크기 정규화
         # wrist = x_skel[:, :, 0:1, :] 
         # x_skel = x_skel - wrist
         
-        # max_dist = torch.norm(x_skel, dim=3).max(dim=2).values 
-        # max_dist[max_dist == 0] = 1e-6 
-        # x_skel = x_skel / max_dist[:, :, None, None]
-        # 수정 제안: 시퀀스 전체에서 가장 큰 값을 찾아 하나로 통일해서 나누기
-        # x_skel: (B, T, V, C)
+        # 시퀀스 전체에서 가장 큰 값을 찾아 하나로 통일해서 정규화
         max_dist_seq = torch.norm(x_skel, dim=3).max(dim=2).values.max(dim=1, keepdim=True).values
-        # max_dist_seq: (B, 1, 1) -> 배치별로 시퀀스 전체에서 가장 큰 값 하나만 남음
         x_skel = x_skel / (max_dist_seq[:, :, None, None] + 1e-6)
         
         # ST-GCN 입력 포맷으로 변경: (B, C, T, V)
         x_skel = x_skel.permute(0, 3, 1, 2).contiguous() 
         
-        # ============================================================
-        # 2. Encoding Phase
-        # ============================================================
         feat_rgb = self.rgb_stream(x_rgb)            # (B, 128, T, 7, 7)
         feat_skel, skel_attn = self.skel_stream(x_skel) # (B, 128, T, V) + Hybrid Attn
         
-        # ============================================================
-        # 3. Spatial Fusion Phase (Skeleton Guides RGB)
-        # ============================================================
-        # DualFusionTransformer는 (B*T, V, C)를 뱉는다고 가정
-        # attn_maps: (attn_skel, attn_self, attn_rgb)
         feat_fused, fusion_attns = self.fusion(feat_skel, feat_rgb) 
         
-        # ============================================================
-        # 4. Temporal & Backend Phase (The Final Logic)
-        # ============================================================
-        # 1) B*T 족쇄 풀기: (B*T, V, 128) -> (B, T, V, 128) -> (B, 128, T, V)
+        # (B*T, V, 128) -> (B, T, V, 128) -> (B, 128, T, V)
         x = feat_fused.view(B, T, V, -1).permute(0, 3, 1, 2).contiguous()
+        x = self.temporal(x) # (B, 128, T, V)
+    
+        logits, temporal_scores = self.head(x) # 중요 프레임 선별 및 최종 분류
         
-        # 2) Temporal Attention: 관절별 시간 흐름 파악
-        # x = self.temporal(x) # (B, 128, T, V)
-        
-        # 3) Integrated Backend: 중요 프레임 선별(Gate) + 분류
-        # logits: 최종 결과, temporal_scores: 프레임별 중요도 점수
-        logits, temporal_scores = self.head(x)
-        
-        # 분석을 위해 모든 중요 지표를 묶어서 리턴
-        # (학습 시에는 logits만 쓰고, 분석 시에는 나머지를 시각화해!)
         analysis_data = {
-            'skel_attn': skel_attn,      # Hybrid Encoder의 그래프 어텐션
+            'skel_attn': skel_attn,       # SKe Encoder의 그래프 어텐션
             'fusion_attns': fusion_attns, # Transformer의 공간 융합 어텐션
             'temporal_scores': temporal_scores # 백엔드의 프레임 점수
         }

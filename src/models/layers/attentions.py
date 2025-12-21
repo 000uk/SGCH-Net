@@ -99,7 +99,6 @@ class GraphAwareAttention(nn.Module):
             # # graph_bias를 (1, 1, V, V)로 만들어서 모든 배치/헤드에 더해줌
             # attn_score = attn_score + graph_bias.unsqueeze(0).unsqueeze(0)
             # bias가 너무 지배적이지 않도록 learnable parameter나 작은 상수를 곱함
-            # 초기값으로 아주 작은 값을 설정해 서서히 학습되게 합니다.
             if not hasattr(self, 'graph_alpha'):
                 self.graph_alpha = nn.Parameter(torch.tensor(0.01, device=q.device))
             attn_score = attn_score + (self.graph_alpha * graph_bias.unsqueeze(0).unsqueeze(0))
