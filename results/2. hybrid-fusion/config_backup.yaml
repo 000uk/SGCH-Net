@@ -1,0 +1,16 @@
+data:
+  csv_path: data/meta.csv
+  data_dir: data
+exp_name: 2. hybrid-fusion
+model:
+  dropout: 0.5
+  hidden_dim: 64
+  in_channels: 3
+  num_layers: 3
+seed: 42
+train:
+  batch_size: 32
+  epochs: 10
+  lr: 0.001
+  warmup_ratio: 0.1
+  weight_decay: 0.0001
